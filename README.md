@@ -93,12 +93,16 @@ command_show_duration_text = '查看播了多久了'
 
 1. 哔哩哔哩网页版任意直播间，按下键盘F12，打开开发工具，发送一条弹幕
 
+<img width="1070" alt="image" src="https://user-images.githubusercontent.com/20333663/204129388-1d31e59c-b715-4597-baf3-0c5aee94b45d.png">
+
 
 2. 右键send,复制->复制为curl
 
 
-
 3. 粘贴到[https://curlconverter.com/python/](https://curlconverter.com/python/)的curl command输入框，下方会自动识别出现cookies
+
+
+<img width="1394" alt="image" src="https://user-images.githubusercontent.com/20333663/204129666-9ad3ba46-023a-4527-849f-b8dce535a0e9.png">
 
 
 4. 将cookies复制，并粘贴到 `main.py` 中cookie的位置，改为cookie

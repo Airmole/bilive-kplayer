@@ -1,0 +1,34 @@
+{
+	"version": "2.0.0",
+	"resource": {
+		"lists": ["./video/音闕詩聽 - 小滿 (feat.王梓鈺)【動態歌詞Lyrics】 [RGtSdbjxVKU].mp4"]
+	},
+	"play": {
+		"cache_on": true,
+		"play_model": "list",
+		"rpc": {
+			"on": true,
+			"http_port": 4156,
+			"grpc_port": 4157,
+			"address": "127.0.0.1"
+		}
+	},
+	"auth": {
+		"auth_on": true,
+		"token": "bilive-kplayer"
+	},
+	"plugin": {
+		"lists": [{
+			"path": "show-image",
+			"unique": "commandTips",
+			"params": {
+				"filename": "./resource/command.jpg"
+			}
+		}]
+	},
+	"output": {
+		"lists": [{
+			"path": "rtmp://127.0.0.1:1935/push"
+		}]
+	}
+}

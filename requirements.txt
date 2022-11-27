@@ -1,0 +1,2 @@
+bilibili_api_python==13.3.0
+requests==2.28.1

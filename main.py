@@ -4,11 +4,11 @@ import random
 import time
 import uuid
 import requests
-from bilibili_api import live, sync, search
+from bilibili_api import live, sync, search, Credential, Danmaku
 
 # 仅管理员可弹幕指令控制
 adminer_control = False
-# 管理员权限哔哩哔哩账号昵称（暂未启用）
+# 管理员权限哔哩哔哩账号昵称
 adminer_nickname = 'Airmole'
 # 直播间号
 room_id = 22783053
@@ -30,8 +30,8 @@ bilivideo_sizelimit = '30m'
 danmaku_print = True
 # 记录点播日志
 save_order_log = True
-# 弹幕回复所需cookie（可浏览器F12抓包获取 https://curlconverter.com/）
-cookie = {}
+# 弹幕回复所需cookie Credential（获取方式：https://nemo2011.github.io/bilibili-api/#/get-credential）
+credential = Credential()
 
 # 弹幕命令关键字设置
 command_show_unplay_text = '查看未播放'
@@ -151,40 +151,10 @@ def save_log(nickname, bvid, keyword):
 
 # 弹幕输出
 def send_danmu(text):
-    if danmaku_print is not True or cookie == {}:
+    if danmaku_print is not True:
         return
-    headers = {
-        'authority': 'api.live.bilibili.com',
-        'sec-ch-ua': '"Chromium";v="93", " Not;A Brand";v="99"',
-        'sec-ch-ua-mobile': '?0',
-        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.63 Safari/537.36 UOS',
-        'sec-ch-ua-platform': '"Linux"',
-        'content-type': 'multipart/form-data; boundary=----WebKitFormBoundaryitgRFWVrmA0aLeaD',
-        'accept': '*/*',
-        'origin': 'https://live.bilibili.com',
-        'sec-fetch-site': 'same-site',
-        'sec-fetch-mode': 'cors',
-        'sec-fetch-dest': 'empty',
-        'referer': 'https://live.bilibili.com/' + str(room_id),
-        'accept-language': 'zh-CN,zh;q=0.9',
-    }
-    text = str(text).encode("utf-8").decode("latin1")
-    data = '------WebKitFormBoundaryitgRFWVrmA0aLeaD\r\nContent-Disposition: form-data; ' \
-           'name="bubble"\r\n\r\n0\r\n------WebKitFormBoundaryitgRFWVrmA0aLeaD\r\nContent-Disposition: form-data; ' \
-           'name="msg"\r\n\r\n' + text + '\r\n------WebKitFormBoundaryitgRFWVrmA0aLeaD\r\nContent-Disposition: form-data; ' \
-           'name="color"\r\n\r\n16777215\r\n------WebKitFormBoundaryitgRFWVrmA0aLeaD\r\nContent-Disposition: ' \
-           'form-data; name="mode"\r\n\r\n1\r\n------WebKitFormBoundaryitgRFWVrmA0aLeaD\r\nContent-Disposition: ' \
-           'form-data; name="fontsize"\r\n\r\n25\r\n------WebKitFormBoundaryitgRFWVrmA0aLeaD\r\nContent-Disposition: ' \
-           'form-data; name="rnd"\r\n\r\n1669523937\r\n------WebKitFormBoundaryitgRFWVrmA0aLeaD\r\nContent' \
-           '-Disposition: form-data; name="roomid"\r\n\r\n' + str(room_id) + '\r\n------WebKitFormBoundaryitgRFWVrmA0aLeaD\r' \
-           '\nContent-Disposition: form-data; ' \
-           'name="csrf"\r\n\r\nfec0fea2993af9b38b1ea5070d58ea04\r\n------WebKitFormBoundaryitgRFWVrmA0aLeaD\r' \
-           '\nContent-Disposition: form-data; ' \
-           'name="csrf_token"\r\n\r\nfec0fea2993af9b38b1ea5070d58ea04\r\n------WebKitFormBoundaryitgRFWVrmA0aLeaD--\r' \
-           '\n'
-
-    response = requests.post('https://api.live.bilibili.com/msg/send', cookies=cookie, headers=headers, data=data)
-    return response
+    liveroom = live.LiveRoom(room_id, credential)
+    return await liveroom.send_danmaku(Danmaku(text))
 
 
 # 删除已经超时的视频
@@ -318,7 +288,7 @@ def get_playlist_next(now):
 # 随机播放播放列表一个视频
 def random_palylist_next():
     playlist = get_playlist()
-    index = random.randint(0, len(playlist)-1)
+    index = random.randint(0, len(playlist) - 1)
     return playlist[index]
 
 

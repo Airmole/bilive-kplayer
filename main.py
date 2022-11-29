@@ -4,8 +4,10 @@ import random
 import time
 import uuid
 import requests
-from bilibili_api import live, sync
+from bilibili_api import live, sync, search
 
+# 仅管理员可弹幕指令控制
+adminer_control = False
 # 管理员权限哔哩哔哩账号昵称（暂未启用）
 adminer_nickname = 'Airmole'
 # 直播间号
@@ -24,6 +26,10 @@ timeout_delete = 60 * 60 * 2
 playlist_file = './playlist.txt'
 # 点播视频大小限制
 bilivideo_sizelimit = '30m'
+# 弹幕发送输出提示信息
+danmaku_print = True
+# 记录点播日志
+save_order_log = True
 # 弹幕回复所需cookie（可浏览器F12抓包获取 https://curlconverter.com/）
 cookie = {}
 
@@ -34,6 +40,7 @@ command_show_next_text = '查看下一条播放信息'
 command_jump_time_text = '跳转时间到'  # 例如：跳转时间到30s
 command_play_next_text = '播放下一条'
 command_order_video_text = '点播视频'  # 例如：点播视频BV1Xt411F7tn
+command_order_music_text = '点歌'  # 例如： 点歌 芒种 音阙诗听
 command_show_duration_text = '查看播了多久了'
 
 room = live.LiveDanmaku(room_id)
@@ -42,14 +49,20 @@ room = live.LiveDanmaku(room_id)
 # 弹幕指令处理
 @room.on('DANMU_MSG')
 async def on_danmaku(event):
+    sender_nickname = event['data']['info'][2][1]
+    # 开启了仅管理员可弹幕控制
+    if adminer_control is True and adminer_nickname != sender_nickname:
+        return
     # 收到弹幕
     danmu_text = event['data']['info'][1]
     print(danmu_text)
+    # 查看未播放
     if danmu_text == command_show_unplay_text:
         unplayed = unplayed_list()
         tips = '还有【' + str(len(unplayed['resources'])) + '】个视频未播放'
         print(tips)
         send_danmu(tips)
+    # 查看正在播放
     if danmu_text == command_show_playing:
         playing = now_playing()
         playingpath = playing['resource']['path']
@@ -58,25 +71,32 @@ async def on_danmaku(event):
         tips = '正在为您播放的是【' + name[0:9] + '】'
         print(tips)
         send_danmu(tips)
+    # 播放时间跳转
     if danmu_text.find(command_jump_time_text) == 0:
         result = jump_playtime(danmu_text)
         tips = '即将为您跳转到【' + result['resource']['seek'] + '】秒'
         print(tips)
         send_danmu(tips)
+    # 播放下一条
     if danmu_text == command_play_next_text:
         play_next()
         tips = '即将为您播放下一条'
         print(tips)
         send_danmu(tips)
+    # 点播视频
     if danmu_text.find(command_order_video_text) == 0:
-        delete_old_video()
-        tips = '收到，正在为您安排点播~'
-        send_danmu(tips)
-        result = order_play_bilivideo(danmu_text.replace(' ', '').replace(command_order_video_text, ''))
-        wait = unplayed_list()
-        tips = '点播成功，您前面还有【' + str(len(wait['resources'])) + '】条视频'
-        send_danmu(tips)
-        print(result)
+        bvid = danmu_text.replace(' ', '').replace(command_order_video_text, '')
+        save_log(sender_nickname, bvid, '')
+        order_bilivideo(bvid)
+    # 点歌MV
+    if danmu_text.find(command_order_music_text) == 0:
+        music_name = danmu_text.replace(command_order_music_text, '')
+        result = sync(search_video_by_order(music_name))
+        if len(result['result']) <= 0:
+            return
+        save_log(sender_nickname, result['result'][0]['bvid'], music_name)
+        order_bilivideo(result['result'][0]['bvid'])
+    # 查看下一条播放信息
     if danmu_text == command_show_next_text:
         unplayed = unplayed_list()
         if len(unplayed['resources']) == 0:
@@ -94,6 +114,7 @@ async def on_danmaku(event):
             tips = '稍后为您播放的是【' + name[0:9] + '】'
             print(tips)
             send_danmu(tips)
+    # 查看程序运行时长
     if danmu_text == command_show_duration_text:
         info = show_duration()
         tips = '已连续直播' + str(info['duration_timestamp']) + '秒'
@@ -101,8 +122,37 @@ async def on_danmaku(event):
         send_danmu(tips)
 
 
+async def search_video_by_order(keyword):
+    return await search.search_by_type(keyword, search_type=search.SearchObjectType.VIDEO,
+                                       order_type=search.OrderVideo.TOTALRANK, page=1)
+
+
+# 点播视频（BV号）
+def order_bilivideo(bvid):
+    delete_old_video()
+    tips = '收到，正在为您安排点播~'
+    send_danmu(tips)
+    result = order_play_bilivideo(bvid)
+    wait = unplayed_list()
+    tips = '点播成功，您前面还有【' + str(len(wait['resources'])) + '】条视频'
+    send_danmu(tips)
+    print(result)
+
+
+# 点播日志记录
+def save_log(nickname, bvid, keyword):
+    if save_order_log is not True:
+        return
+    now_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    fo = open("./log/order.log", "a+")
+    fo.write("【%s】%s 点播 %s %s\n" % (now_time, nickname, bvid, keyword))
+    fo.close()
+
+
 # 弹幕输出
 def send_danmu(text):
+    if danmaku_print is not True or cookie == {}:
+        return
     headers = {
         'authority': 'api.live.bilibili.com',
         'sec-ch-ua': '"Chromium";v="93", " Not;A Brand";v="99"',
@@ -115,7 +165,7 @@ def send_danmu(text):
         'sec-fetch-site': 'same-site',
         'sec-fetch-mode': 'cors',
         'sec-fetch-dest': 'empty',
-        'referer': 'https://live.bilibili.com/22783053',
+        'referer': 'https://live.bilibili.com/' + str(room_id),
         'accept-language': 'zh-CN,zh;q=0.9',
     }
     text = str(text).encode("utf-8").decode("latin1")
@@ -126,7 +176,7 @@ def send_danmu(text):
            'form-data; name="mode"\r\n\r\n1\r\n------WebKitFormBoundaryitgRFWVrmA0aLeaD\r\nContent-Disposition: ' \
            'form-data; name="fontsize"\r\n\r\n25\r\n------WebKitFormBoundaryitgRFWVrmA0aLeaD\r\nContent-Disposition: ' \
            'form-data; name="rnd"\r\n\r\n1669523937\r\n------WebKitFormBoundaryitgRFWVrmA0aLeaD\r\nContent' \
-           '-Disposition: form-data; name="roomid"\r\n\r\n22783053\r\n------WebKitFormBoundaryitgRFWVrmA0aLeaD\r' \
+           '-Disposition: form-data; name="roomid"\r\n\r\n' + str(room_id) + '\r\n------WebKitFormBoundaryitgRFWVrmA0aLeaD\r' \
            '\nContent-Disposition: form-data; ' \
            'name="csrf"\r\n\r\nfec0fea2993af9b38b1ea5070d58ea04\r\n------WebKitFormBoundaryitgRFWVrmA0aLeaD\r' \
            '\nContent-Disposition: form-data; ' \
@@ -148,7 +198,10 @@ def delete_old_video():
             # 过期视频文件删除
             if now_timestamp - timeout_delete > filename_timestamp:
                 full_path = root + os.sep + file
+                cache_path = './cache/' + str(file) + '.kpc'
                 os.remove(full_path)
+                if os.path.exists(cache_path):
+                    os.remove(cache_path)
                 print('已清除过期视频文件' + full_path)
 
 

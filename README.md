@@ -94,6 +94,7 @@ command_order_music_text = '点歌'  # 例如： 点歌 芒种 音阙诗听
 command_show_duration_text = '查看播了多久了'
 ```
 
+
 ## 如何获取cookie Credential()值
 
 ```python
@@ -101,6 +102,7 @@ credential = Credential(sessdata="你的 SESSDATA", bili_jct="你的 bili_jct", 
 ```
 
 - [https://nemo2011.github.io/bilibili-api/#/get-credential](https://nemo2011.github.io/bilibili-api/#/get-credential) 写的很详细
+
 
 ## 相关参考文档
 

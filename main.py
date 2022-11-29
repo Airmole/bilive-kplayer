@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import asyncio
 import os
 import random
 import time
@@ -12,8 +13,6 @@ adminer_control = False
 adminer_nickname = 'Airmole'
 # 直播间号
 room_id = 22783053
-# kplayer token参数见kplayer config配置
-kplayer_token = 'bilive-kplayer'
 # kplayer RPC HTTP API服务主机及端口号
 kplayer_host = '127.0.0.1:4156'
 # 点播视频存放目录
@@ -29,7 +28,7 @@ bilivideo_sizelimit = '30m'
 # 弹幕发送输出提示信息
 danmaku_print = True
 # 记录点播日志
-save_order_log = True
+save_order_log = False
 # 弹幕回复所需cookie Credential（获取方式：https://nemo2011.github.io/bilibili-api/#/get-credential）
 credential = Credential()
 
@@ -85,13 +84,17 @@ async def on_danmaku(event):
         send_danmu(tips)
     # 点播视频
     if danmu_text.find(command_order_video_text) == 0:
+        tips = '收到，正在为您安排点播~'
+        send_danmu(tips)
         bvid = danmu_text.replace(' ', '').replace(command_order_video_text, '')
         save_log(sender_nickname, bvid, '')
         order_bilivideo(bvid)
     # 点歌MV
     if danmu_text.find(command_order_music_text) == 0:
+        tips = '收到，正在为您安排点播~'
+        send_danmu(tips)
         music_name = danmu_text.replace(command_order_music_text, '')
-        result = sync(search_video_by_order(music_name))
+        result = await (search_video_by_order(music_name))
         if len(result['result']) <= 0:
             return
         save_log(sender_nickname, result['result'][0]['bvid'], music_name)
@@ -130,8 +133,6 @@ async def search_video_by_order(keyword):
 # 点播视频（BV号）
 def order_bilivideo(bvid):
     delete_old_video()
-    tips = '收到，正在为您安排点播~'
-    send_danmu(tips)
     result = order_play_bilivideo(bvid)
     wait = unplayed_list()
     tips = '点播成功，您前面还有【' + str(len(wait['resources'])) + '】条视频'
@@ -154,7 +155,7 @@ def send_danmu(text):
     if danmaku_print is not True:
         return
     liveroom = live.LiveRoom(room_id, credential)
-    return await liveroom.send_danmaku(Danmaku(text))
+    asyncio.create_task(liveroom.send_danmaku(Danmaku(text)))
 
 
 # 删除已经超时的视频
@@ -164,6 +165,9 @@ def delete_old_video():
             if file.find('.mp4') == -1:
                 continue
             now_timestamp = int(time.mktime(time.localtime(time.time())))
+            filename = file.replace('.mp4', '').replace(' ', '')
+            if filename.isdigit() is False:
+                return
             filename_timestamp = int(file.replace('.mp4', '').replace(' ', ''))
             # 过期视频文件删除
             if now_timestamp - timeout_delete > filename_timestamp:
@@ -243,20 +247,14 @@ def unplayed_list():
 def post(uri, json=None):
     if json is None:
         json = {}
-    headers = {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Authorization': kplayer_token
-    }
+    headers = {'Content-Type': 'application/json; charset=utf-8'}
     response = requests.post('http://' + kplayer_host + uri, headers=headers, json=json)
     return response
 
 
 # GET请求Kplayer API接口
 def get(uri):
-    headers = {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Authorization': kplayer_token
-    }
+    headers = {'Content-Type': 'application/json; charset=utf-8'}
     response = requests.get('http://' + kplayer_host + uri, headers=headers)
     return response
 

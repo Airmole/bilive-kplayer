@@ -94,15 +94,26 @@ command_order_music_text = '点歌'  # 例如： 点歌 芒种 音阙诗听
 command_show_duration_text = '查看播了多久了'
 ```
 
+## 如何获取cookie
 
-## 如何获取cookie Credential()值
+1. 哔哩哔哩网页版在自己直播间，按下键盘F12，打开开发工具，发送一条弹幕
 
-```python
-credential = Credential(sessdata="你的 SESSDATA", bili_jct="你的 bili_jct", buvid3="你的 buvid3", dedeuserid="你的 DedeUserID")
-```
+<img width="1070" alt="image" src="https://user-images.githubusercontent.com/20333663/204129388-1d31e59c-b715-4597-baf3-0c5aee94b45d.png">
 
-- [https://nemo2011.github.io/bilibili-api/#/get-credential](https://nemo2011.github.io/bilibili-api/#/get-credential) 写的很详细
 
+2. 右键send,复制->复制为curl
+
+
+3. 粘贴到[https://curlconverter.com/python/](https://curlconverter.com/python/)的curl command输入框，下方会自动识别出现cookies
+
+
+<img width="1394" alt="image" src="https://user-images.githubusercontent.com/20333663/204129666-9ad3ba46-023a-4527-849f-b8dce535a0e9.png">
+
+
+4. 将cookies复制，并粘贴到 `main.py` 中cookie的位置，改为cookie
+
+
+> 注意，复制的是cookies = { ，复制到 `main.py` 中之后记得要改成 cookie = { 
 
 ## 相关参考文档
 

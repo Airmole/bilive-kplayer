@@ -30,7 +30,7 @@ danmaku_print = True
 # 记录点播日志
 save_order_log = False
 # 弹幕回复所需cookie Credential（获取方式：https://nemo2011.github.io/bilibili-api/#/get-credential）
-credential = Credential()
+cookie = {}
 
 # 弹幕命令关键字设置
 command_show_unplay_text = '查看未播放'
@@ -154,8 +154,40 @@ def save_log(nickname, bvid, keyword):
 def send_danmu(text):
     if danmaku_print is not True:
         return
-    liveroom = live.LiveRoom(room_id, credential)
-    asyncio.create_task(liveroom.send_danmaku(Danmaku(text)))
+    text = str(text).encode("utf-8").decode("latin1")
+
+    headers = {
+        'authority': 'api.live.bilibili.com',
+        'accept': '*/*',
+        'accept-language': 'zh-CN,zh;q=0.9,zh-TW;q=0.8,en-US;q=0.7,en;q=0.6',
+        'content-type': 'multipart/form-data; boundary=----WebKitFormBoundaryxAwxLfgAMpU2TaLW',
+        'origin': 'https://live.bilibili.com',
+        'referer': ('https://live.bilibili.com/%s' % (str(room_id))),
+        'sec-ch-ua': '"Google Chrome";v="107", "Chromium";v="107", "Not=A?Brand";v="24"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"macOS"',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'same-site',
+        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36',
+    }
+
+    data = '------WebKitFormBoundaryxAwxLfgAMpU2TaLW\r\nContent-Disposition: form-data; ' \
+           'name="bubble"\r\n\r\n0\r\n------WebKitFormBoundaryxAwxLfgAMpU2TaLW\r\nContent-Disposition: form-data; ' \
+           'name="msg"\r\n\r\n'+text+'\r\n------WebKitFormBoundaryxAwxLfgAMpU2TaLW\r\nContent-Disposition: form-data; ' \
+           'name="color"\r\n\r\n16777215\r\n------WebKitFormBoundaryxAwxLfgAMpU2TaLW\r\nContent-Disposition: ' \
+           'form-data; name="mode"\r\n\r\n1\r\n------WebKitFormBoundaryxAwxLfgAMpU2TaLW\r\nContent-Disposition: ' \
+           'form-data; name="fontsize"\r\n\r\n25\r\n------WebKitFormBoundaryxAwxLfgAMpU2TaLW\r\nContent-Disposition: ' \
+           'form-data; name="rnd"\r\n\r\n1669772490\r\n------WebKitFormBoundaryxAwxLfgAMpU2TaLW\r\nContent' \
+           '-Disposition: form-data; name="roomid"\r\n\r\n'+str(room_id)+'\r\n------WebKitFormBoundaryxAwxLfgAMpU2TaLW\r' \
+           '\nContent-Disposition: form-data; ' \
+           'name="csrf"\r\n\r\na51ec36dbfa2fc7b8c47506c914b7208\r\n------WebKitFormBoundaryxAwxLfgAMpU2TaLW\r' \
+           '\nContent-Disposition: form-data; ' \
+           'name="csrf_token"\r\n\r\na51ec36dbfa2fc7b8c47506c914b7208\r\n------WebKitFormBoundaryxAwxLfgAMpU2TaLW--\r' \
+           '\n '
+
+    response = requests.post('https://api.live.bilibili.com/msg/send', cookies=cookie, headers=headers, data=data)
+    return response
 
 
 # 删除已经超时的视频

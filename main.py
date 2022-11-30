@@ -29,7 +29,7 @@ bilivideo_sizelimit = '30m'
 danmaku_print = True
 # 记录点播日志
 save_order_log = False
-# 弹幕回复所需cookie Credential（获取方式：https://nemo2011.github.io/bilibili-api/#/get-credential）
+# 弹幕回复所需cookie
 cookie = {}
 
 # 弹幕命令关键字设置
